@@ -45,7 +45,6 @@ import unicodedata
 
 # assignation du display à la variable lcd et effacement du display
 lcd = LCD.Adafruit_CharLCDPlate()
-lcd.clear()
 
 # création des listes pour les différents lieux pour lesquel on veut pouvoir afficher les prévisions météo
 lLieux = [
@@ -68,18 +67,20 @@ lCouleurs = [
    [0.0, 1.0, 1.0, "CYAN"],
    [1.0, 0.0, 1.0, "MAGENTA"],
    [1.0, 1.0, 1.0, "WHITE"]]
-   
+
+#buttons 
+buttons = (LCD.SELECT, LCD.RIGHT, LCD.DOWN, LCD.UP, LCD.LEFT)
+
+# indexes
 iLieuxPays = 0 # index des pays dans la liste lLieux
 iLieuxVille = 1 # index de la ville dans la liste lLieux
 iLieuxLangue = 2 # index de la langue dans la liste lLieux
 
-# choix du lieu par défaut
-iLieuChoisi = 0 # 0=Sion, 1=Todi, ...
-# iNombreLieux = len(lLieux)
+iLieuChoisi = 0 # 0 = Sion, 1=  Todi, ...
 iJourChoisi = 1 # 0 = auhourd'hui, 1 = demain , ...
-iCouleurChoisie = 6 # WHITE
+iCouleurChoisie = 6 #  = reed , ... 6 = white
 
-
+# info site wunderground
 sKey = "d49b0a2fb656398f" # # clé fournie par le site internet de prévision météo https://www.wunderground.com/
 sDemand = "forecast10day" # la demande pourrait aussi être "forecast10day" pour afficher la prévision sur 10 jours
 sUrl = "http://api.wunderground.com/api" # url pour la demande
@@ -91,11 +92,6 @@ sUrl = "http://api.wunderground.com/api" # url pour la demande
 def strip_accents(s):
    return ''.join(c for c in unicodedata.normalize('NFD', s)
                   if unicodedata.category(c) != 'Mn')
-
-# fonction qui lit la prévision
-def read_forecast(sRequest):
-   r = requests.get(sRequest)
-   return r.json() # récuper les datas sous forme JavaScript Object Notation (JSON)
    
 # fonction qui retourne les valeur du lieu choisi
 def select_place(iPlace):
@@ -105,7 +101,8 @@ def select_place(iPlace):
 def get_forecast (iPlace):
 
    sCountry, sCity, sLanguage = select_place(iPlace)
-   sForecast = read_forecast(sUrl + "/" + sKey + "/" + sDemand + "/" + sLanguage + "/q/" + sCountry + "/" + sCity +".json")
+   r = requests.get(sUrl + "/" + sKey + "/" + sDemand + "/" + sLanguage + "/q/" + sCountry + "/" + sCity +".json")
+   sForecast = r.json()
 
 
    # boucle pour parcourir les prévisions une à une
@@ -140,13 +137,10 @@ def get_forecast (iPlace):
 #---------------------------------------------------------------------------------------------------------------------------------
 # PROGRAMME PRINCIPAL
 
-
+lcd.clear()
 lForecast = get_forecast(iLieuChoisi)
 lcd.message(lForecast[iJourChoisi])
 
-# Make list of button value, text, and backlight color.
-#buttons = (LCD.SELECT, LCD.LEFT, LCD.UP, LCD.DOWN, LCD.RIGHT)
-buttons = (LCD.SELECT, LCD.RIGHT, LCD.DOWN, LCD.UP, LCD.LEFT)
 
 while True:
     # Loop through each button and check if it is pressed.
