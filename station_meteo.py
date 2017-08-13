@@ -43,7 +43,12 @@ import unicodedata
 #---------------------------------------------------------------------------------------------------------------------------------
 #initialisations des variables
 
-# assignation du display à la variable lcd et effacement du display
+# info site wunderground qui fournit les prévisions météo pour le monde entier
+sKey = "d49b0a2fb656398f" # clé fournie par le site internet de prévision météo https://www.wunderground.com/
+sDemand = "forecast" # la demande pourrait aussi être "forecast10day" pour afficher la prévision sur 10 jours
+sUrl = "http://api.wunderground.com/api" # url pour la demande
+
+# assignation du display à la variable lcd 
 lcd = LCD.Adafruit_CharLCDPlate()
 
 # création des listes pour les différents lieux pour lesquel on veut pouvoir afficher les prévisions météo
@@ -52,7 +57,6 @@ lLieux = [
    ["IT", "Todi", "IT"],
    ["ES", "la Garriga", "SP"],
    ["GB", "London", "EN"],
-   ["CH", "Bramois", "FR"],
    ["Canada", "Montreal", "FR"],
    ["Australia", "Sydney", "EN"],
    ["CA", "San Francisco", "EN"],
@@ -76,38 +80,35 @@ iLieuxPays = 0 # index des pays dans la liste lLieux
 iLieuxVille = 1 # index de la ville dans la liste lLieux
 iLieuxLangue = 2 # index de la langue dans la liste lLieux
 
-iLieuChoisi = 0 # 0 = Sion, 1=  Todi, ...
-iJourChoisi = 1 # 0 = auhourd'hui, 1 = demain , ...
-iCouleurChoisie = 6 #  = reed , ... 6 = white
-
-# info site wunderground
-sKey = "d49b0a2fb656398f" # # clé fournie par le site internet de prévision météo https://www.wunderground.com/
-sDemand = "forecast10day" # la demande pourrait aussi être "forecast10day" pour afficher la prévision sur 10 jours
-sUrl = "http://api.wunderground.com/api" # url pour la demande
+iLieuChoisi = 0 # 0=Sion, 1=Todi, ...
+iJourChoisi = 1 # 0=aujourd'hui, 1=demain , ...
+iCouleurChoisie = 6 #  0=reed , ... 6=white
 
 #---------------------------------------------------------------------------------------------------------------------------------
-# fonctions utiles au programme
+# fonctions nécessaires au fonctionnement du programme
 
 # fonction qui permet de supprimer les lettres accentuées dans un string
+# car le display ne peut pas afficher des lettres accentuées
 def strip_accents(s):
    return ''.join(c for c in unicodedata.normalize('NFD', s)
                   if unicodedata.category(c) != 'Mn')
    
-# fonction qui retourne les valeur du lieu choisi
+# fonction qui lit et retourne les données du lieu choisi dans la liste <iLieux> en fonction de l'index <iPlace>
 def select_place(iPlace):
    return lLieux[iPlace][iLieuxPays], lLieux[iPlace][iLieuxVille], 'lang:' + lLieux[iPlace][iLieuxLangue]
 
-# fonction qui retoune la prévision
+# fonction qui questionne le site wunderground.com et retoune la prévision
 def get_forecast (iPlace):
 
-   sCountry, sCity, sLanguage = select_place(iPlace)
+   sCountry, sCity, sLanguage = select_place(iPlace) # assignation des valeurs pays, ville et langue aux variables
+   # questionnement du site wunderground,com
    r = requests.get(sUrl + "/" + sKey + "/" + sDemand + "/" + sLanguage + "/q/" + sCountry + "/" + sCity +".json")
    sForecast = r.json()
 
 
-   # boucle pour parcourir les prévisions une à une
-   iDay = 0
-   retForecast = []
+   # boucle pour parcourir les prévisions jour après jour (4 jours pour forecast)
+   
+   retForecast = [] # initialisation de la liste des prévision
    for day in sForecast['forecast']['simpleforecast']['forecastday']:
 
       # création du string date et températures
@@ -116,7 +117,7 @@ def get_forecast (iPlace):
       # création du string de prévision
       str2 = strip_accents(day['conditions'])
 
-      # si le string contient plus de 16 caractères alors on raccourcit le premier mot 
+      # si le string contient plus de 16 caractères alors on raccourcit le premier mot en principe mais le dernier en anglais et allemand
       if len(str2) > 16 :
          if sLanguage == "lang:EN" or sLanguage == "lang:DL" :
             str31 = str2.split()
@@ -128,9 +129,8 @@ def get_forecast (iPlace):
 
       # le string final pour l'affichage = str1 + saut de ligne + str2
       strx = str1 + "\n" + str2
-
+      # et on renvoie le string préparé
       retForecast += [strx]
-      iDay += 1
 
    return retForecast
 
@@ -141,46 +141,69 @@ lcd.clear()
 lForecast = get_forecast(iLieuChoisi)
 lcd.message(lForecast[iJourChoisi])
 
+# impression utile pendant la phase de mise au point du programme
+print lLieux[iLieuChoisi][iLieuxVille] + " / " + lLieux[iLieuChoisi][iLieuxLangue]
+print lForecast[iJourChoisi]
+print "------------------"
 
+# boucle sans fin <CTRL-C> pour quitter le programme
 while True:
-    # Loop through each button and check if it is pressed.
+   
+    # boucle sur tous les boutons et contrôle si un est pressé
     for button in buttons:
-       
+
+       # un bouton est-il pressé ?
        if lcd.is_pressed(button): 
 
+          # actualise les données et les affiche
           if button == 0 : # SELECT
              iJourChoisi=1 # 0 = aujourd'hui, 1 = demain , ...
              lForecast = get_forecast(iLieuChoisi)
-          
+
+          # sélectionne le lieu suivant dans la liste iLieux
           elif button == 1: # RIGHT
              iLieuChoisi += 1
              if iLieuChoisi >= len(lLieux) :
                 iLieuChoisi = 0
              lForecast = get_forecast(iLieuChoisi)
-             
+
+          # sélectionne le jour suivant   
           elif button == 2: # DOWN
              iJourChoisi -= 1
              if iJourChoisi < 0 :
                 iJourChoisi = len(lForecast) - 1
              lForecast = get_forecast(iLieuChoisi)
-             
+
+          # sélectionne le jour précédent   
           elif button == 3: # UP
              iJourChoisi += 1
              if iJourChoisi >= len(lForecast) :
                 iJourChoisi = 0
              lForecast = get_forecast(iLieuChoisi)
-             
+
+          # change la couleur de l'affichage   
           elif button == 4: # LEFT
              iCouleurChoisie += 1
              if iCouleurChoisie >= len(lCouleurs) :
                 iCouleurChoisie = 0
-                
+
+          # sette la couleur de l'affichage      
           lcd.set_color(lCouleurs[iCouleurChoisie][0],lCouleurs[iCouleurChoisie][1],lCouleurs[iCouleurChoisie][2])
+          # efface l'affichage
           lcd.clear()
+          # affiche le nom de la ville et la langue sur le display pour 1 seconde
           lcd.message(lLieux[iLieuChoisi][iLieuxVille] + " / " + lLieux[iLieuChoisi][iLieuxLangue])
           time.sleep(1)
+          # efface le display
           lcd.clear()
+          # affiche la prévision météo
           lcd.message(lForecast[iJourChoisi])
+
+          # impression utile pendant la phase de mise au point du programme
+          print lLieux[iLieuChoisi][iLieuxVille] + " / " + lLieux[iLieuChoisi][iLieuxLangue]
+          print lForecast[iJourChoisi]
+          print "------------------"
+          
     time.sleep(0.2)
 
 # Fin du programme
