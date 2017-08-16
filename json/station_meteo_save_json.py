@@ -24,7 +24,7 @@ sLang = "lang:FR"
 ##sPays = "IT"
 ##sVille = "Todi"
 ##sLang = "lang:IT"
-sKey = "67b3e8dedd282c83"
+sKey = "d49b0a2fb656398f"
 sDemand = "forecast10day"
 sUrl = "http://api.wunderground.com/api"
 sRequest = sUrl + "/" + sKey + "/" + sDemand + "/" + sLang + "/q/" + sPays + "/" + sVille +".json"
@@ -32,11 +32,11 @@ sTooLong =["Partiellement", "Parzialmente", "Possibilita", "Parcialmente", "Prob
 
 print "started"
 r = requests.get(sRequest)
-data = r.json()
-print data
+print r.json()
 
 # Open a file in witre mode
-fo = open("xml_jo.txt", "rw+")
-line = fo.writelines( data )
-fo.close()
+myf = open("wunderground_json_data.txt","w") 
+myf.write(str(r.json())) 
+myf.close() 
+
 print "finished"

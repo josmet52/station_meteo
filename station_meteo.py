@@ -27,8 +27,8 @@ prévision météo du jour précédent et respectivement du jour suivant.
 Les informations météo sont downloadée depuis le site internet https://www.wunderground.com/
 au moyen d'une clé que chaque utilisateur devra obtenir car pour chaque clé, le nombre de prévisions
 obtenues gratuitement est limité.
-   - la clé doit être introduite dans le code ci-après et assignéeà la variable <sKey>
-   - l'URL est fourni par le site Wunderground.com et doit être assigné à la variable <sURL>
+   - la clé doit être introduite dans le code ci-après et assignéeà la variable <wuKey>
+   - l'URL est fourni par le site Wunderground.com et doit être assigné à la variable <wuURL>
 """
 
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -44,15 +44,15 @@ import unicodedata
 #initialisations des variables
 
 # info site wunderground qui fournit les prévisions météo pour le monde entier
-sKey = "d49b0a2fb656398f" # clé fournie par le site internet de prévision météo https://www.wunderground.com/
-sDemand = "forecast" # la demande pourrait aussi être "forecast10day" pour afficher la prévision sur 10 jours
-sUrl = "http://api.wunderground.com/api" # url pour la demande
+wuKey = "d49b0a2fb656398f" # clé fournie par le site internet de prévision météo https://www.wunderground.com/
+wuDemand = "forecast" # la demande pourrait aussi être "forecast10day" pour afficher la prévision sur 10 jours
+wuURL = "http://api.wunderground.com/api" # url pour la demande
 
-# assignation du display à la variable lcd 
-lcd = LCD.Adafruit_CharLCDPlate()
+# assignation du display à la variable lcdDisplay 
+lcdDisplay = LCD.Adafruit_CharLCDPlate()
 
 # création des listes pour les différents lieux pour lesquel on veut pouvoir afficher les prévisions météo
-lLieux = [
+placeList = [
    ["CH", "Sion", "FR"],
    ["IT", "Todi", "IT"],
    ["ES", "la Garriga", "SP"],
@@ -62,8 +62,17 @@ lLieux = [
    ["CA", "San Francisco", "EN"],
    ["Germany", "Berlin", "DL"]]
 
+# indexes
+placesCountryIndex = 0 # index des pays dans la liste placeList (colonne 0)
+placesCityIndex = 1 # index de la ville dans la liste placeList (colonne 1)
+placesLanguageIndex = 2 # index de la langue dans la liste placeList (colonne 2)
+
+selectedPlace = 0 # 0=Sion, 1=Todi, ...
+selectedDay = 1 # 0=aujourd'hui, 1=demain , ...
+selectedColor = 6 #  0=reed , ... 6=white
+
 # Listes des couleurs
-lCouleurs = [
+colorList = [
    [1.0, 0.0, 0.0, "RED"],
    [0.0, 1.0, 0.0, "GREEN"],
    [0.0, 0.0, 1.0, "BLUE"],
@@ -72,17 +81,8 @@ lCouleurs = [
    [1.0, 0.0, 1.0, "MAGENTA"],
    [1.0, 1.0, 1.0, "WHITE"]]
 
-#buttons 
-buttons = (LCD.SELECT, LCD.RIGHT, LCD.DOWN, LCD.UP, LCD.LEFT)
-
-# indexes
-iLieuxPays = 0 # index des pays dans la liste lLieux
-iLieuxVille = 1 # index de la ville dans la liste lLieux
-iLieuxLangue = 2 # index de la langue dans la liste lLieux
-
-iLieuChoisi = 0 # 0=Sion, 1=Todi, ...
-iJourChoisi = 1 # 0=aujourd'hui, 1=demain , ...
-iCouleurChoisie = 6 #  0=reed , ... 6=white
+#buttonList 
+buttonList = [LCD.SELECT, LCD.RIGHT, LCD.DOWN, LCD.UP, LCD.LEFT]
 
 #---------------------------------------------------------------------------------------------------------------------------------
 # fonctions nécessaires au fonctionnement du programme
@@ -93,16 +93,14 @@ def strip_accents(s):
    return ''.join(c for c in unicodedata.normalize('NFD', s)
                   if unicodedata.category(c) != 'Mn')
    
-# fonction qui lit et retourne les données du lieu choisi dans la liste <iLieux> en fonction de l'index <iPlace>
-def select_place(iPlace):
-   return lLieux[iPlace][iLieuxPays], lLieux[iPlace][iLieuxVille], 'lang:' + lLieux[iPlace][iLieuxLangue]
-
 # fonction qui questionne le site wunderground.com et retoune la prévision
 def get_forecast (iPlace):
 
-   sCountry, sCity, sLanguage = select_place(iPlace) # assignation des valeurs pays, ville et langue aux variables
+   sLanguage = 'lang:' + placeList[iPlace][placesLanguageIndex]
+   sCountry = placeList[iPlace][placesCountryIndex] 
+   sCity = placeList[iPlace][placesCityIndex]
    # questionnement du site wunderground,com
-   r = requests.get(sUrl + "/" + sKey + "/" + sDemand + "/" + sLanguage + "/q/" + sCountry + "/" + sCity +".json")
+   r = requests.get(wuURL + "/" + wuKey + "/" + wuDemand + "/" + sLanguage + "/q/" + sCountry + "/" + sCity +".json")
    sForecast = r.json()
 
 
@@ -112,7 +110,8 @@ def get_forecast (iPlace):
    for day in sForecast['forecast']['simpleforecast']['forecastday']:
 
       # création du string date et températures
-      str1 = strip_accents(day['date']['weekday'][0:2] + " " + str(day['date']['day']) + " -> " + day['low']['celsius'] + "-" + day['high']['celsius'])
+#      str1 = strip_accents(day['date']['weekday'][0:2] + " " + str(day['date']['day']) + " -> " + day['low']['celsius'] + "-" + day['high']['celsius'])
+      str1 = strip_accents(day['date']['weekday_short'] + " " + str(day['date']['day']) + " -> " + day['low']['celsius'] + "-" + day['high']['celsius'])
 
       # création du string de prévision
       str2 = strip_accents(day['conditions'])
@@ -137,71 +136,71 @@ def get_forecast (iPlace):
 #---------------------------------------------------------------------------------------------------------------------------------
 # PROGRAMME PRINCIPAL
 
-lcd.clear()
-lForecast = get_forecast(iLieuChoisi)
-lcd.message(lForecast[iJourChoisi])
+lcdDisplay.clear()
+lForecast = get_forecast(selectedPlace)
+lcdDisplay.message(lForecast[selectedDay])
 
 # impression utile pendant la phase de mise au point du programme
-print lLieux[iLieuChoisi][iLieuxVille] + " / " + lLieux[iLieuChoisi][iLieuxLangue]
-print lForecast[iJourChoisi]
+print placeList[selectedPlace][placesCityIndex] + " / " + placeList[selectedPlace][placesLanguageIndex]
+print lForecast[selectedDay]
 print "------------------"
 
 # boucle sans fin <CTRL-C> pour quitter le programme
 while True:
    
     # boucle sur tous les boutons et contrôle si un est pressé
-    for button in buttons:
+    for button in buttonList:
 
        # un bouton est-il pressé ?
-       if lcd.is_pressed(button): 
+       if lcdDisplay.is_pressed(button): 
 
           # actualise les données et les affiche
           if button == 0 : # SELECT
-             iJourChoisi=1 # 0 = aujourd'hui, 1 = demain , ...
-             lForecast = get_forecast(iLieuChoisi)
+             selectedDay=1 # 0 = aujourd'hui, 1 = demain , ...
+             lForecast = get_forecast(selectedPlace)
 
           # sélectionne le lieu suivant dans la liste iLieux
           elif button == 1: # RIGHT
-             iLieuChoisi += 1
-             if iLieuChoisi >= len(lLieux) :
-                iLieuChoisi = 0
-             lForecast = get_forecast(iLieuChoisi)
+             selectedPlace += 1
+             if selectedPlace >= len(placeList) :
+                selectedPlace = 0
+             lForecast = get_forecast(selectedPlace)
 
           # sélectionne le jour suivant   
           elif button == 2: # DOWN
-             iJourChoisi -= 1
-             if iJourChoisi < 0 :
-                iJourChoisi = len(lForecast) - 1
-             lForecast = get_forecast(iLieuChoisi)
+             selectedDay -= 1
+             if selectedDay < 0 :
+                selectedDay = len(lForecast) - 1
+             lForecast = get_forecast(selectedPlace)
 
           # sélectionne le jour précédent   
           elif button == 3: # UP
-             iJourChoisi += 1
-             if iJourChoisi >= len(lForecast) :
-                iJourChoisi = 0
-             lForecast = get_forecast(iLieuChoisi)
+             selectedDay += 1
+             if selectedDay >= len(lForecast) :
+                selectedDay = 0
+             lForecast = get_forecast(selectedPlace)
 
           # change la couleur de l'affichage   
           elif button == 4: # LEFT
-             iCouleurChoisie += 1
-             if iCouleurChoisie >= len(lCouleurs) :
-                iCouleurChoisie = 0
+             selectedColor += 1
+             if selectedColor >= len(colorList) :
+                selectedColor = 0
 
           # sette la couleur de l'affichage      
-          lcd.set_color(lCouleurs[iCouleurChoisie][0],lCouleurs[iCouleurChoisie][1],lCouleurs[iCouleurChoisie][2])
+          lcdDisplay.set_color(colorList[selectedColor][0],colorList[selectedColor][1],colorList[selectedColor][2])
           # efface l'affichage
-          lcd.clear()
+          lcdDisplay.clear()
           # affiche le nom de la ville et la langue sur le display pour 1 seconde
-          lcd.message(lLieux[iLieuChoisi][iLieuxVille] + " / " + lLieux[iLieuChoisi][iLieuxLangue])
+          lcdDisplay.message(placeList[selectedPlace][placesCityIndex] + " / " + placeList[selectedPlace][placesLanguageIndex])
           time.sleep(1)
           # efface le display
-          lcd.clear()
+          lcdDisplay.clear()
           # affiche la prévision météo
-          lcd.message(lForecast[iJourChoisi])
+          lcdDisplay.message(lForecast[selectedDay])
 
           # impression utile pendant la phase de mise au point du programme
-          print lLieux[iLieuChoisi][iLieuxVille] + " / " + lLieux[iLieuChoisi][iLieuxLangue]
-          print lForecast[iJourChoisi]
+          print placeList[selectedPlace][placesCityIndex] + " / " + placeList[selectedPlace][placesLanguageIndex]
+          print lForecast[selectedDay]
           print "------------------"
           
     time.sleep(0.2)
