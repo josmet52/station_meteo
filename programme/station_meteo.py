@@ -26,7 +26,7 @@ Usage des boutons :
 Les informations météo sont downloadée depuis le site internet https://www.wunderground.com/
 au moyen d'une clé que chaque utilisateur doit obtenir car pour chaque clé, le nombre de prévisions
 obtenues gratuitement est limité.
-   - la clé doit être introduite dans le code ci-après et assignéeà  la variable <wuKey>
+   - la clé doit être introduite dans le code ci-après et assignée à la variable <wuKey>
    - l'URL est fourni par le site Wunderground.com et doit être assigné à la variable <wuURL>
 """
 
