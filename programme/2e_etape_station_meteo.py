@@ -16,6 +16,7 @@ Ce programme interroge le site internet www.wunderground.com/api pour obtenir le
 # importation des librairies nécessaires
 import json
 import requests
+import time
 import Adafruit_CharLCD as LCD
 
 
@@ -41,6 +42,8 @@ for day in sForecast['forecast']['simpleforecast']['forecastday']:
     str2 = day['conditions']
     lcdDisplay.clear()
     lcdDisplay.message(str1 + "\n" + str2)
+
+    time.sleep(2)
     
 # Fin du programme
 #---------------------------------------------------------------------------------------------------------------------------------

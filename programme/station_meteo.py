@@ -15,19 +15,18 @@ Sur la première ligne sont afichés le jour de la semaine et la date ainsi que 
 températures minimales et maximales prévues et sur la deuxième lignes est donnée
 la prévision météorologique en bref.
 
-Le lieu pour lequel la prévision est faite peut être choisi par l'utilisateur dans une
-liste proposée par le programmeur en pressant sur les boutons <GAUCHE et <DROITE>
-
-La prévision est actualisée lors du lancement de l'application, lors de la pression
-sur le bouton <SELECT> ou <GAUCHE> ou <DROITE>
-
-Le programme permet également en pressant sur les boutons <HAUT> et <BAS> d'afficher la
-prévision météo du jour précédent et respectivement du jour suivant.
+Usage des boutons :
+   <SELECT> mise à jour des informations selon les données par défaut
+   <HAUT> prévision pour le prochain jour 
+   <DROITE> sélectionne le prochain lieu dans la liste 
+   <BAS> sélectionne la prochaine langue dans la liste
+   <GAUCHE> sélectionne la prochaine couleur
+   Remarque : toutes les actions reprennent au début lorsque la dernière est atteinte
 
 Les informations météo sont downloadée depuis le site internet https://www.wunderground.com/
-au moyen d'une clé que chaque utilisateur devra obtenir car pour chaque clé, le nombre de prévisions
+au moyen d'une clé que chaque utilisateur doit obtenir car pour chaque clé, le nombre de prévisions
 obtenues gratuitement est limité.
-   - la clé doit être introduite dans le code ci-après et assignéeà la variable <wuKey>
+   - la clé doit être introduite dans le code ci-après et assignéeà  la variable <wuKey>
    - l'URL est fourni par le site Wunderground.com et doit être assigné à la variable <wuURL>
 """
 
@@ -53,33 +52,36 @@ lcdDisplay = LCD.Adafruit_CharLCDPlate()
 
 # création des listes pour les différents lieux pour lesquel on veut pouvoir afficher les prévisions météo
 placeList = [
-   ["CH", "Sion", "FR"],
-   ["IT", "Todi", "IT"],
-   ["ES", "la Garriga", "SP"],
-   ["GB", "London", "EN"],
-   ["Canada", "Montreal", "FR"],
-   ["Australia", "Sydney", "EN"],
-   ["CA", "San Francisco", "EN"],
-   ["Germany", "Berlin", "DL"]]
+   ["CH", "Sion"],
+   ["IT", "Todi"],
+   ["ES", "la Garriga"],
+   ["GB", "London"],
+   ["Canada", "Montreal"],
+   ["Australia", "Sydney"],
+   ["CA", "San Francisco"],
+   ["Germany", "Berlin"]]
 
 # indexes
 placesCountryIndex = 0 # index des pays dans la liste placeList (colonne 0)
 placesCityIndex = 1 # index de la ville dans la liste placeList (colonne 1)
-placesLanguageIndex = 2 # index de la langue dans la liste placeList (colonne 2)
 
 selectedPlace = 0 # 0=Sion, 1=Todi, ...
 selectedDay = 1 # 0=aujourd'hui, 1=demain , ...
 selectedColor = 6 #  0=reed , ... 6=white
 
-# Listes des couleurs
+# Listes des couleurs 0=red, 1=green, 2=blue, 3=yellow, 4=cyan, 5=magenta, 6=white
 colorList = [
-   [1.0, 0.0, 0.0, "RED"],
-   [0.0, 1.0, 0.0, "GREEN"],
-   [0.0, 0.0, 1.0, "BLUE"],
-   [1.0, 1.0, 0.0, "YELLOW"],
-   [0.0, 1.0, 1.0, "CYAN"],
-   [1.0, 0.0, 1.0, "MAGENTA"],
-   [1.0, 1.0, 1.0, "WHITE"]]
+   [1.0, 0.0, 0.0],
+   [0.0, 1.0, 0.0],
+   [0.0, 0.0, 1.0],
+   [1.0, 1.0, 0.0],
+   [0.0, 1.0, 1.0],
+   [1.0, 0.0, 1.0],
+   [1.0, 1.0, 1.0]]
+
+# Liste des langues
+languageList = ["FR", "IT", "SP", "CA", "DL", "EN"]
+selectedLanguage = 0  # par défaut en francais
 
 #buttonList 
 buttonList = [LCD.SELECT, LCD.RIGHT, LCD.DOWN, LCD.UP, LCD.LEFT]
@@ -96,7 +98,7 @@ def strip_accents(s):
 # fonction qui questionne le site wunderground.com et retoune la prévision
 def get_forecast (iPlace):
 
-   sLanguage = 'lang:' + placeList[iPlace][placesLanguageIndex]
+   sLanguage = 'lang:' + languageList[selectedLanguage]
    sCountry = placeList[iPlace][placesCountryIndex] 
    sCity = placeList[iPlace][placesCityIndex]
    # questionnement du site wunderground,com
@@ -110,7 +112,6 @@ def get_forecast (iPlace):
    for day in sForecast['forecast']['simpleforecast']['forecastday']:
 
       # création du string date et températures
-#      str1 = strip_accents(day['date']['weekday'][0:2] + " " + str(day['date']['day']) + " -> " + day['low']['celsius'] + "-" + day['high']['celsius'])
       str1 = strip_accents(day['date']['weekday_short'] + " " + str(day['date']['day']) + " -> " + day['low']['celsius'] + "-" + day['high']['celsius'])
 
       # création du string de prévision
@@ -141,7 +142,7 @@ lForecast = get_forecast(selectedPlace)
 lcdDisplay.message(lForecast[selectedDay])
 
 # impression utile pendant la phase de mise au point du programme
-print placeList[selectedPlace][placesCityIndex] + " / " + placeList[selectedPlace][placesLanguageIndex]
+print placeList[selectedPlace][placesCityIndex] + " / " + languageList[selectedLanguage]
 print lForecast[selectedDay]
 print "------------------"
 
@@ -156,7 +157,10 @@ while True:
 
           # actualise les données et les affiche
           if button == 0 : # SELECT
-             selectedDay=1 # 0 = aujourd'hui, 1 = demain , ...
+             selectedDay=0 # 0 = aujourd'hui
+             selectedLanguage = 0 # 0 = francais
+             selectedPlace = 0 # 0 = Sion
+             selectedColor = 6 # 0 = white
              lForecast = get_forecast(selectedPlace)
 
           # sélectionne le lieu suivant dans la liste iLieux
@@ -166,11 +170,11 @@ while True:
                 selectedPlace = 0
              lForecast = get_forecast(selectedPlace)
 
-          # sélectionne le jour suivant   
+          # sélectionne la langue suivante   
           elif button == 2: # DOWN
-             selectedDay -= 1
-             if selectedDay < 0 :
-                selectedDay = len(lForecast) - 1
+             selectedLanguage += 1
+             if selectedLanguage >= len(languageList) :
+                selectedLanguage = 0
              lForecast = get_forecast(selectedPlace)
 
           # sélectionne le jour précédent   
@@ -191,7 +195,7 @@ while True:
           # efface l'affichage
           lcdDisplay.clear()
           # affiche le nom de la ville et la langue sur le display pour 1 seconde
-          lcdDisplay.message(placeList[selectedPlace][placesCityIndex] + " / " + placeList[selectedPlace][placesLanguageIndex])
+          lcdDisplay.message(placeList[selectedPlace][placesCityIndex] + " / " + languageList[selectedLanguage])
           time.sleep(1)
           # efface le display
           lcdDisplay.clear()
@@ -199,7 +203,7 @@ while True:
           lcdDisplay.message(lForecast[selectedDay])
 
           # impression utile pendant la phase de mise au point du programme
-          print placeList[selectedPlace][placesCityIndex] + " / " + placeList[selectedPlace][placesLanguageIndex]
+          print placeList[selectedPlace][placesCityIndex] + " / " + languageList[selectedLanguage]
           print lForecast[selectedDay]
           print "------------------"
           
